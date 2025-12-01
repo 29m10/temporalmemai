@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
-from .llm.extractor import FactExtractor
-from .temporal.engine import TemporalEngine
-from .storage.sqlite_store import SqliteStore
-from .storage.qdrant_store import QdrantStore
 from .embedding.openai_embedder import OpenAIEmbedder
-from .models import MemoryModel
+from .llm.extractor import FactExtractor
+from .storage.qdrant_store import QdrantStore
+from .storage.sqlite_store import SqliteStore
+from .temporal.engine import TemporalEngine
 
 
 class Memory:
@@ -15,7 +14,7 @@ class Memory:
     Public facade. Day 1: wiring only, no real behavior.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         config = config or {}
 
         sqlite_path = config.get("sqlite_path", "~/.temporal_mem/history.db")
@@ -48,10 +47,10 @@ class Memory:
 
     def add(
         self,
-        messages: Union[str, List[Dict[str, str]]],
+        messages: str | list[dict[str, str]],
         user_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Day 1: return empty results.
         """
@@ -61,9 +60,9 @@ class Memory:
         self,
         query: str,
         user_id: str,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Day 1: return empty results.
         """
@@ -73,7 +72,7 @@ class Memory:
         self,
         user_id: str,
         status: str = "active",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Day 1: return empty results.
         """
@@ -83,9 +82,9 @@ class Memory:
         """
         Day 1: no-op.
         """
-        return None
+        return
 
-    def update(self, memory_id: str, new_content: str) -> Optional[Dict[str, Any]]:
+    def update(self, memory_id: str, new_content: str) -> dict[str, Any] | None:
         """
         Day 1: return None.
         """

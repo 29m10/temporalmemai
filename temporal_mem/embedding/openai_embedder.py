@@ -1,6 +1,3 @@
-from typing import List
-
-
 class OpenAIEmbedder:
     """
     Wrapper around an embedding model.
@@ -16,7 +13,7 @@ class OpenAIEmbedder:
         self.api_key = api_key
         self.model = model
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """
         Day 1: return a fixed-size dummy vector so the type shape is correct.
         """

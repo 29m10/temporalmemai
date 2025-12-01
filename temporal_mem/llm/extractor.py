@@ -1,4 +1,3 @@
-from typing import List, Dict
 from ..models import FactCandidate
 
 
@@ -23,7 +22,7 @@ class FactExtractor:
         self.temperature = temperature
         self.base_prompt = base_prompt
 
-    def extract_from_message(self, message: str) -> List[FactCandidate]:
+    def extract_from_message(self, message: str) -> list[FactCandidate]:
         """
         Given a single message, return a list of FactCandidate objects.
 
@@ -31,7 +30,7 @@ class FactExtractor:
         """
         return []
 
-    def extract_from_messages(self, messages: List[Dict[str, str]]) -> List[FactCandidate]:
+    def extract_from_messages(self, messages: list[dict[str, str]]) -> list[FactCandidate]:
         """
         Given a list of messages ({role, content}), return facts.
 

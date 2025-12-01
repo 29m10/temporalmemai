@@ -1,6 +1,4 @@
-from typing import List, Optional
-
-from ..models import MemoryModel, FactCandidate
+from ..models import FactCandidate, MemoryModel
 from ..storage.sqlite_store import SqliteStore
 
 
@@ -19,10 +17,10 @@ class TemporalEngine:
 
     def process_write_batch(
         self,
-        facts: List[FactCandidate],
+        facts: list[FactCandidate],
         user_id: str,
-        source_turn_id: Optional[str] = None,
-    ) -> List[MemoryModel]:
+        source_turn_id: str | None = None,
+    ) -> list[MemoryModel]:
         """
         Turn a list of FactCandidate into MemoryModel objects.
         Day 1: return empty list.
@@ -31,8 +29,8 @@ class TemporalEngine:
 
     def filter_and_rank(
         self,
-        memories: List[MemoryModel],
-    ) -> List[MemoryModel]:
+        memories: list[MemoryModel],
+    ) -> list[MemoryModel]:
         """
         Temporal filtering and ranking for reads.
         Day 1: return input as-is.

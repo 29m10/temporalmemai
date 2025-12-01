@@ -1,4 +1,5 @@
-from typing import List, Optional, Dict, Any
+from typing import Any
+
 from ..models import MemoryModel
 
 
@@ -21,7 +22,7 @@ class QdrantStore:
         self.collection = collection
         self.vector_size = vector_size
 
-    def upsert(self, mem: MemoryModel, embedding: List[float]) -> None:
+    def upsert(self, mem: MemoryModel, embedding: list[float]) -> None:
         raise NotImplementedError
 
     def delete(self, mem_id: str) -> None:
@@ -30,8 +31,8 @@ class QdrantStore:
     def search(
         self,
         user_id: str,
-        query_embedding: List[float],
+        query_embedding: list[float],
         limit: int = 10,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[tuple[str, float]]:
+        filters: dict[str, Any] | None = None,
+    ) -> list[tuple[str, float]]:
         raise NotImplementedError
