@@ -3,7 +3,6 @@
 import json
 import os
 import sqlite3
-from typing import List, Optional
 
 from ..models import MemoryModel
 
@@ -43,15 +42,11 @@ class SqliteStore:
             );
             """
         )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_mem_user ON memories(user_id);"
-        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_user ON memories(user_id);")
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_mem_user_slot_status ON memories(user_id, slot, status);"
         )
-        cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_mem_status ON memories(status);"
-        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_mem_status ON memories(status);")
         self.conn.commit()
 
     @staticmethod
@@ -110,7 +105,7 @@ class SqliteStore:
         )
         self.conn.commit()
 
-    def get_by_id(self, mem_id: str) -> Optional[MemoryModel]:
+    def get_by_id(self, mem_id: str) -> MemoryModel | None:
         cur = self.conn.cursor()
         cur.execute("SELECT * FROM memories WHERE id = ? LIMIT 1;", (mem_id,))
         row = cur.fetchone()
@@ -126,7 +121,7 @@ class SqliteStore:
         )
         self.conn.commit()
 
-    def get_active_by_slot(self, user_id: str, slot: str) -> List[MemoryModel]:
+    def get_active_by_slot(self, user_id: str, slot: str) -> list[MemoryModel]:
         cur = self.conn.cursor()
         cur.execute(
             """
@@ -140,7 +135,7 @@ class SqliteStore:
         rows = cur.fetchall()
         return [self._row_to_model(r) for r in rows]
 
-    def list_by_user(self, user_id: str, status: str = "active") -> List[MemoryModel]:
+    def list_by_user(self, user_id: str, status: str = "active") -> list[MemoryModel]:
         cur = self.conn.cursor()
         cur.execute(
             """
@@ -154,7 +149,7 @@ class SqliteStore:
         rows = cur.fetchall()
         return [self._row_to_model(r) for r in rows]
 
-    def list_by_ids(self, ids: List[str]) -> List[MemoryModel]:
+    def list_by_ids(self, ids: list[str]) -> list[MemoryModel]:
         if not ids:
             return []
         placeholders = ",".join("?" for _ in ids)
@@ -171,4 +166,3 @@ class SqliteStore:
 
     def close(self) -> None:
         self.conn.close()
-

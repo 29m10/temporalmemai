@@ -124,13 +124,22 @@ class FactExtractor:
             category = str(f.get("category", "other")).strip() or "other"
             slot = f.get("slot", None)
 
+            stability = f.get("stability")
+            temporal_scope = f.get("temporal_scope")
+            kind = f.get("kind")
+
+            # duration_in_days may be null or an int
+            duration_raw = f.get("duration_in_days")
+            try:
+                duration_in_days = int(duration_raw) if duration_raw is not None else None
+            except (TypeError, ValueError):
+                duration_in_days = None
+
             conf_raw = f.get("confidence", 1.0)
             try:
                 confidence = float(conf_raw)
             except (TypeError, ValueError):
                 confidence = 1.0
-
-            # Clamp to [0, 1]
             confidence = max(0.0, min(1.0, confidence))
 
             try:
@@ -139,10 +148,13 @@ class FactExtractor:
                     category=category,
                     slot=slot,
                     confidence=confidence,
+                    stability=stability,
+                    temporal_scope=temporal_scope,
+                    kind=kind,
+                    duration_in_days=duration_in_days,
                 )
                 results.append(fact)
             except ValidationError:
-                # If something is off in the dict, skip that fact
                 continue
 
         return results
