@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
-from .llm.extractor import FactExtractor
-from .temporal.engine import TemporalEngine
-from .storage.sqlite_store import SqliteStore
-from .storage.qdrant_store import QdrantStore  # still unused on Day 3
+if TYPE_CHECKING:
+    import builtins
+
 from .embedding.openai_embedder import OpenAIEmbedder  # still unused on Day 3
-from .models import MemoryModel
+from .llm.extractor import FactExtractor
+from .models import MemoryModel  # noqa: TC001
+from .storage.qdrant_store import QdrantStore  # still unused on Day 3
+from .storage.sqlite_store import SqliteStore
+from .temporal.engine import TemporalEngine
 
 
 def _now_iso() -> str:
@@ -27,7 +30,7 @@ class Memory:
     - search/update/delete are still mostly stubs (for later days)
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         config = config or {}
 
         sqlite_path = config.get("sqlite_path", "~/.temporal_mem/history.db")
@@ -67,10 +70,10 @@ class Memory:
 
     def add(
         self,
-        messages: Union[str, List[Dict[str, str]]],
+        messages: str | builtins.list[dict[str, str]],
         user_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         v1 (Day 3):
         - Extract facts using FactExtractor
@@ -114,7 +117,7 @@ class Memory:
         self,
         user_id: str,
         status: str = "active",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         v1 (Day 3):
         - Read memories from SQLite by user + status.
@@ -132,9 +135,9 @@ class Memory:
         self,
         query: str,
         user_id: str,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Day 3: semantic search not implemented yet.
         """
@@ -144,9 +147,9 @@ class Memory:
         """
         Day 3: stub; will implement soft-delete + Qdrant removal later.
         """
-        return None
+        return
 
-    def update(self, memory_id: str, new_content: str) -> Optional[Dict[str, Any]]:
+    def update(self, memory_id: str, new_content: str) -> dict[str, Any] | None:
         """
         Day 3: stub; will implement "archive old + insert new" later.
         """
@@ -157,7 +160,7 @@ class Memory:
     # ------------------------------------------------------------------ #
 
     @staticmethod
-    def _serialize_memory(mem: MemoryModel) -> Dict[str, Any]:
+    def _serialize_memory(mem: MemoryModel) -> dict[str, Any]:
         return {
             "id": mem.id,
             "user_id": mem.user_id,

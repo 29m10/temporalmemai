@@ -2,10 +2,30 @@ from pydantic import BaseModel
 
 
 class FactCandidate(BaseModel):
+    """
+    Output of the fact extraction layer.
+
+    - text: human-readable fact
+    - category: coarse type ("profile", "preference", "event", "temp_state", "other")
+    - slot: semantic slot ("location", "home_location", "current_location", "job", "hobby", etc.)
+    - confidence: LLM's belief (0-1)
+    - stability: "persistent" | "temporary" | "unknown"
+    - temporal_scope: "now" | "today" | "this_week" | "this_month" | "specific_range" | "none"
+    - kind: domain-specific sub-type ("home_location", "current_location", "trip", etc.)
+    - duration_in_days: interpreted duration of this fact, if any (e.g. "two days" -> 2)
+    """
+
     text: str
-    category: str  # "profile" | "preference" | "event" | "temp_state" | "other"
+    category: str
     slot: str | None = None
-    confidence: float = 1.0  # 0.0-1.0
+    confidence: float = 1.0
+
+    stability: str | None = None  # persistent | temporary | unknown
+    temporal_scope: str | None = (
+        None  # now | today | this_week | this_month | specific_range | none
+    )
+    kind: str | None = None  # home_location | current_location | trip | ...
+    duration_in_days: int | None = None
 
 
 class MemoryModel(BaseModel):
