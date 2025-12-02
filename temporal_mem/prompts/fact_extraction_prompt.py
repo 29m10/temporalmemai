@@ -11,7 +11,7 @@ GENERIC_FACT_EXTRACTION_PROMPT = """
 
     - text: a short, clear statement of the fact.
     - category: one of ["profile", "preference", "event", "temp_state", "other"].
-    - slot: a compact label such as "home_location", "current_location", "location",
+    - slot: a compact label such as "home_location", "current_location",
     "job", "employer", "hobby", "budget", etc. Use null if unclear.
     - stability: "persistent", "temporary", or "unknown".
     - "persistent" for stable facts (home city, job, long-term preferences).
