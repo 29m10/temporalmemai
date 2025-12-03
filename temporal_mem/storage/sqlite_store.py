@@ -67,7 +67,7 @@ class SqliteStore:
             memory=row["memory"],
             type=row["type"],
             slot=row["slot"],
-            kind=row.get("kind"),  # Use .get() for backward compatibility
+            kind=row["kind"],
             status=row["status"],
             created_at=row["created_at"],
             valid_until=row["valid_until"],
