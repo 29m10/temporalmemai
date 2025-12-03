@@ -136,33 +136,80 @@ class SqliteStore:
         return [self._row_to_model(r) for r in rows]
 
     def list_by_user(self, user_id: str, status: str = "active") -> list[MemoryModel]:
+        """
+        Return memories for a user. Any memories that have passed valid_until
+        are lazily marked as 'expired' and excluded from the 'active' results.
+        """
         cur = self.conn.cursor()
-        cur.execute(
-            """
-            SELECT * FROM memories
-            WHERE user_id = ?
-              AND status = ?
-            ORDER BY datetime(created_at) DESC;
-            """,
-            (user_id, status),
-        )
+
+        if status:
+            cur.execute(
+                """
+                SELECT id, user_id, memory, type, slot, status,
+                       created_at, valid_until, decay_half_life_days,
+                       confidence, supersedes, source_turn_id, extra
+                FROM memories
+                WHERE user_id = ? AND status = ?
+                """,
+                (user_id, status),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT id, user_id, memory, type, slot, status,
+                       created_at, valid_until, decay_half_life_days,
+                       confidence, supersedes, source_turn_id, extra
+                FROM memories
+                WHERE user_id = ?
+                """,
+                (user_id,),
+            )
+
         rows = cur.fetchall()
-        return [self._row_to_model(r) for r in rows]
+        memories: list[MemoryModel] = []
+
+        for row in rows:
+            mem = self._row_to_model(row)
+            mem = self._expire_if_needed(mem)
+
+            # If caller asked for active only, and this one just expired,
+            # then skip it from the result.
+            if status and mem.status != status:
+                continue
+
+            memories.append(mem)
+
+        return memories
 
     def list_by_ids(self, ids: list[str]) -> list[MemoryModel]:
+        """
+        Fetch memories by ids. Any that have passed valid_until and are still
+        marked 'active' are lazily flipped to 'expired' before returning.
+        """
         if not ids:
             return []
-        placeholders = ",".join("?" for _ in ids)
+
         cur = self.conn.cursor()
+        placeholders = ",".join("?" for _ in ids)
+
         cur.execute(
             f"""
-            SELECT * FROM memories
-            WHERE id IN ({placeholders});
+            SELECT id, user_id, memory, type, slot, status,
+                   created_at, valid_until, decay_half_life_days,
+                   confidence, supersedes, source_turn_id, extra
+            FROM memories
+            WHERE id IN ({placeholders})
             """,
             ids,
         )
-        rows = cur.fetchall()
-        return [self._row_to_model(r) for r in rows]
 
-    def close(self) -> None:
-        self.conn.close()
+        rows = cur.fetchall()
+        memories: list[MemoryModel] = []
+
+        for row in rows:
+            mem = self._row_to_model(row)
+            mem = self._expire_if_needed(mem)
+            memories.append(mem)
+
+        return memories
+
