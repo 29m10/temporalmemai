@@ -26,6 +26,8 @@ class FactCandidate(BaseModel):
     )
     kind: str | None = None  # home_location | current_location | trip | ...
     duration_in_days: int | None = None
+    duration_in_hours: int | None = None
+    duration_in_minutes: int | None = None
 
 
 class MemoryModel(BaseModel):
@@ -34,6 +36,7 @@ class MemoryModel(BaseModel):
     memory: str
     type: str  # "profile_fact" | "preference" | "episodic_event" | "temp_state" | "task_state" | "other"
     slot: str | None = None
+    kind: str | None = None  # domain-specific sub-type from fact extraction ("home_location", "current_location", "trip", etc.)
     status: str = "active"  # "active" | "archived" | "deleted"
     created_at: str
     valid_until: str | None = None
