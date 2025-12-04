@@ -123,7 +123,7 @@ GENERIC_FACT_EXTRACTION_PROMPT = """
     - "I will stay here for 2 hours." → temp_state with duration
 
     Invalid facts (do NOT extract):
-    - The user’s opinions about someone else unless it is a preference.
+    - The user's opinions about someone else unless it is a preference.
     - Hypotheticals ("If I go to Goa...")
     - Questions ("Where is my flight?")
     - Commands ("Book a cab.")
@@ -136,7 +136,7 @@ GENERIC_FACT_EXTRACTION_PROMPT = """
     REQUIREMENTS & BEHAVIORAL RULES
     ============================================================
 
-    - DO NOT paraphrase or elaborate beyond the user’s words.
+    - DO NOT paraphrase or elaborate beyond the user's words.
     - DO NOT combine multiple facts into one; split them into distinct items.
     - DO NOT apply business logic or interpretation.
     - Duration detection is STRICT.

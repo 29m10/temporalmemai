@@ -4,21 +4,24 @@ from __future__ import annotations
 
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
-from .llm.extractor import FactExtractor
-from .temporal.engine import TemporalEngine
-from .storage.sqlite_store import SqliteStore
-from .storage.qdrant_store import QdrantStore
+if TYPE_CHECKING:
+    import builtins
+
 from .embedding.openai_embedder import OpenAIEmbedder
+from .llm.extractor import FactExtractor
 from .models import MemoryModel
+from .storage.qdrant_store import QdrantStore
+from .storage.sqlite_store import SqliteStore
+from .temporal.engine import TemporalEngine
 
 
 def _now_iso() -> str:
     return datetime.utcnow().isoformat() + "Z"
 
 
-def _parse_iso_maybe(dt_str: Optional[str]) -> Optional[datetime]:
+def _parse_iso_maybe(dt_str: str | None) -> datetime | None:
     if not dt_str:
         return None
     # handle 2025-01-01T00:00:00Z and 2025-01-01T00:00:00
@@ -40,7 +43,7 @@ class Memory:
         query -> embedding -> Qdrant search -> SQLite fetch -> temporal-aware scoring
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         config = config or {}
 
         sqlite_path = config.get("sqlite_path", "~/.temporal_mem/history.db")
@@ -76,19 +79,45 @@ class Memory:
         )
 
     # ------------------------------------------------------------------ #
+    # Lazy-expire helper (per user, easy to remove later)
+    # ------------------------------------------------------------------ #
+
+    def _lazy_expire_user(self, user_id: str) -> None:
+        """
+        Best-effort lazy expiration for a single user.
+
+        - Calls metadata_store.expire_user_memories(user_id).
+        - Used in add(), list(), and search() so that:
+          - by the time we look at "active" memories,
+            anything past valid_until is marked "expired".
+
+        To remove this behavior in future:
+        - delete this method
+        - remove calls to _lazy_expire_user in add(), list(), search().
+        """
+        try:
+            expired = self.metadata_store.expire_user_memories(user_id)
+            if expired:
+                print(f"[Memory] Lazy-expired {expired} memories for user={user_id}")
+        except Exception as e:
+            print(f"[Memory] Lazy expire failed for user={user_id}: {e}")
+            traceback.print_exc()
+
+    # ------------------------------------------------------------------ #
     # ADD
     # ------------------------------------------------------------------ #
 
     def add(
         self,
-        messages: Union[str, List[Dict[str, str]]],
+        messages: str | builtins.list[dict[str, str]],
         user_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Add memories from a message or list of chat messages.
 
         Pipeline:
+        0. Lazy-expire outdated memories for this user in SQLite.
         1. Extract fact candidates via FactExtractor (LLM).
         2. TemporalEngine converts them to MemoryModel objects
            (type, slot, TTL, etc.).
@@ -101,6 +130,9 @@ class Memory:
         calls (in any process) can retrieve these memories, as long as
         Qdrant data persists.
         """
+        # Lazy expire before we add more context for this user
+        self._lazy_expire_user(user_id)
+
         if isinstance(messages, str):
             msg_list = [{"role": "user", "content": messages}]
         else:
@@ -176,11 +208,14 @@ class Memory:
         self,
         user_id: str,
         status: str = "active",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         v1:
+        - Lazy-expire this user's memories.
         - Read memories from SQLite by user + status.
         """
+        self._lazy_expire_user(user_id)
+
         memories = self.metadata_store.list_by_user(user_id, status=status)
         return {
             "results": [self._serialize_memory(m) for m in memories],
@@ -194,18 +229,23 @@ class Memory:
         self,
         query: str,
         user_id: str,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         limit: int = 10,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Semantic search over user's memories.
 
         Steps:
+        - Lazy-expire this user's memories (so expired ones become status='expired').
         - Embed query
         - Vector search in Qdrant (filtered by user_id and optional filters)
         - Fetch MemoryModel from SQLite by ids
+        - Drop non-active memories defensively
         - Temporal-aware re-ranking
         """
+        # FIRST: expire stale memories for this user
+        self._lazy_expire_user(user_id)
+
         filters = filters or {}
         if "status" not in filters:
             filters["status"] = "active"
@@ -238,13 +278,17 @@ class Memory:
 
         # Merge similarity score from Qdrant with temporal info for ranking
         now = datetime.utcnow()
-        combined: List[Dict[str, Any]] = []
+        combined: list[dict[str, Any]] = []
 
         for r in vec_results:
             mem_id = r["id"]
             score = r["score"]
             mem = mem_by_id.get(mem_id)
             if not mem:
+                continue
+
+            # Defensive: even if Qdrant returns it, don't surface non-active memories
+            if mem.status != "active":
                 continue
 
             final_score = self._compute_rank_score(
@@ -285,7 +329,7 @@ class Memory:
         valid_until_dt = _parse_iso_maybe(mem.valid_until)
         created_at_dt = _parse_iso_maybe(mem.created_at)
 
-        # Expiry penalty
+        # Expiry penalty (extra safety; lazy expire should already handle this)
         if valid_until_dt and now > valid_until_dt:
             # expired memories get a heavy penalty
             score -= 0.5
@@ -295,18 +339,12 @@ class Memory:
             score += 0.1
         elif mem.type == "preference":
             score += 0.05
-        elif mem.type == "temp_state":
+        elif mem.type == "temp_state" and created_at_dt and (now - created_at_dt).days > 7:
             # Newer temp states preferred over older ones
-            if created_at_dt:
-                age_days = (now - created_at_dt).days
-                if age_days > 7:
-                    score -= 0.1
-        elif mem.type == "episodic_event":
+            score -= 0.1
+        elif mem.type == "episodic_event" and created_at_dt and (now - created_at_dt).days > 30:
             # mild penalty for very old events
-            if created_at_dt:
-                age_days = (now - created_at_dt).days
-                if age_days > 30:
-                    score -= 0.05
+            score -= 0.05
 
         # Confidence adjustment
         if mem.confidence < 0.5:
@@ -334,9 +372,8 @@ class Memory:
         except Exception as e:
             print("[Memory.delete] Qdrant delete failed for memory_id:", memory_id, "err:", e)
             traceback.print_exc()
-            pass
 
-    def update(self, memory_id: str, new_content: str) -> Optional[Dict[str, Any]]:
+    def update(self, memory_id: str, new_content: str) -> dict[str, Any] | None:
         """
         Simple update pattern:
         - archive old memory
@@ -390,7 +427,6 @@ class Memory:
         except Exception as e:
             print("[Memory.update] Qdrant upsert failed for memory_id:", memory_id, "err:", e)
             traceback.print_exc()
-            pass
 
         return self._serialize_memory(new_mem)
 
@@ -399,7 +435,7 @@ class Memory:
     # ------------------------------------------------------------------ #
 
     @staticmethod
-    def _serialize_memory(mem: MemoryModel) -> Dict[str, Any]:
+    def _serialize_memory(mem: MemoryModel) -> dict[str, Any]:
         return {
             "id": mem.id,
             "user_id": mem.user_id,
@@ -416,8 +452,8 @@ class Memory:
             "source_turn_id": mem.source_turn_id,
             "extra": mem.extra,
         }
-    
-    def reindex_user(self, user_id: str, status: str = "active") -> Dict[str, int]:
+
+    def reindex_user(self, user_id: str, status: str = "active") -> dict[str, int]:
         """
         Rebuild Qdrant index for all memories of a user from SQLite.
 
@@ -462,4 +498,3 @@ class Memory:
                 failed += 1
 
         return {"total": total, "indexed": indexed, "failed": failed}
-

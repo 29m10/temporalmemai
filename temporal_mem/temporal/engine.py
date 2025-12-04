@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional
 from uuid import uuid4
 
 from ..models import FactCandidate, MemoryModel
@@ -98,19 +97,19 @@ class TemporalEngine:
 
     def _resolve_conflicts(self, mem: MemoryModel) -> MemoryModel:
         """
-        If this memory has a slot, archive previous active memories with same slot.
+        Conflict resolution is disabled for now.
+
+        Previously:
+        - We archived existing active memories for the same user + slot.
+
+        For now:
+        - We keep ALL memories, even if they share the same slot
+          (home_location, current_location, hobby, etc.).
+
+        This makes the system append-only, which is simpler while we
+        debug and refine semantics. We can reintroduce smarter conflict
+        logic later.
         """
-        if not mem.slot:
-            return mem
-
-        existing = self.metadata_store.get_active_by_slot(mem.user_id, mem.slot)
-        supersedes_ids: list[str] = []
-        for old in existing:
-            self.metadata_store.update_status(old.id, "archived")
-            supersedes_ids.append(old.id)
-
-        if supersedes_ids:
-            mem.supersedes = supersedes_ids
         return mem
 
     # ------------------------------------------------------------------ #
@@ -121,7 +120,7 @@ class TemporalEngine:
         self,
         fact: FactCandidate,
         user_id: str,
-        source_turn_id: Optional[str] = None,
+        source_turn_id: str | None = None,
     ) -> MemoryModel:
         # Use semantic routing (kind + slot)
         mem_type, slot = self._type_and_slot_from_fact(fact)
@@ -147,13 +146,13 @@ class TemporalEngine:
         # 👇 IMPORTANT: pass both mem AND fact
         mem = self._apply_policies(mem, fact)
         mem = self._resolve_conflicts(mem)
-        return mem
+        return mem  # noqa: RET504
 
     def process_write_batch(
         self,
         facts: list[FactCandidate],
         user_id: str,
-        source_turn_id: Optional[str] = None,
+        source_turn_id: str | None = None,
     ) -> list[MemoryModel]:
         """
         Turn a list of FactCandidate into enriched MemoryModel objects.
