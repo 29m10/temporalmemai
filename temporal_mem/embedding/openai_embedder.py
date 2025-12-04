@@ -29,6 +29,22 @@ class OpenAIEmbedder:
         self.client = OpenAI(api_key=api_key)
         self.model = model
 
+    @property
+    def vector_size(self) -> int:
+        """
+        Return the vector dimension size for the current model.
+        """
+        # OpenAI embedding model dimensions
+        if "text-embedding-3-large" in self.model:
+            return 3072
+        elif "text-embedding-3-small" in self.model:
+            return 1536
+        elif "text-embedding-ada-002" in self.model:
+            return 1536
+        else:
+            # Default to 1536 for unknown models (most common)
+            return 1536
+
     def embed_one(self, text: str) -> list[float]:
         """
         Embed a single text and return its embedding vector.
