@@ -1,4 +1,4 @@
-# temporal_mem/rerankers/llm_reranker.py
+# temporalmemai/rerankers/llm_reranker.py
 
 from __future__ import annotations
 

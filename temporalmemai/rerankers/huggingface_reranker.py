@@ -1,4 +1,4 @@
-# temporal_mem/rerankers/huggingface_reranker.py
+# temporalmemai/rerankers/huggingface_reranker.py
 
 from __future__ import annotations
 

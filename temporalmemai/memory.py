@@ -1,4 +1,4 @@
-# temporal_mem/memory.py
+# temporalmemai/memory.py
 
 from __future__ import annotations
 
@@ -111,11 +111,11 @@ class Memory:
                 "Set QDRANT_PORT or provide qdrant_port."
             )
 
-        # Collection name defaults to "temporal_mem_default" if not provided
+        # Collection name defaults to "temporalmemai_default" if not provided
         collection_name = (
             config.get("qdrant_collection")
             or os.getenv("QDRANT_COLLECTION")
-            or "temporal_mem_default"
+            or "temporalmemai_default"
         )
 
         # -------------------------------------------------------

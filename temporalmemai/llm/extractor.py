@@ -1,4 +1,4 @@
-# temporal_mem/llm/extractor.py
+# temporalmemai/llm/extractor.py
 
 from __future__ import annotations
 
@@ -204,7 +204,7 @@ class FactExtractor:
 
 
 # -------------------------------------------------------------------------
-# Manual demo: python -m temporal_mem.llm.extractor
+# Manual demo: python -m temporalmemai.llm.extractor
 # -------------------------------------------------------------------------
 
 if __name__ == "__main__":

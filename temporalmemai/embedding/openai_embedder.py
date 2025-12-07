@@ -1,4 +1,4 @@
-# temporal_mem/embedding/openai_embedder.py
+# temporalmemai/embedding/openai_embedder.py
 
 from __future__ import annotations
 

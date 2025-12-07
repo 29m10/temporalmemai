@@ -1,4 +1,4 @@
-# temporal_mem/rerankers/cohere_reranker.py
+# temporalmemai/rerankers/cohere_reranker.py
 import os
 from typing import Any
 

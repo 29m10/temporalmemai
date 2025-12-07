@@ -1,4 +1,4 @@
-# temporal_mem/prompts/fact_extraction_prompt.py
+# temporalmemai/prompts/fact_extraction_prompt.py
 
 GENERIC_FACT_EXTRACTION_PROMPT = """
     You are a high-precision Fact Extraction Engine.

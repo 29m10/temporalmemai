@@ -1,4 +1,4 @@
-# temporal_mem/rerankers/base.py
+# temporalmemai/rerankers/base.py
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
