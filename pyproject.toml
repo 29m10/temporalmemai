@@ -65,6 +65,16 @@ Issues = "https://github.com/29m10/temporalmemai/issues"
 [tool.hatchling.build.targets.wheel]
 packages = ["temporalmemai"]
 
+[tool.hatchling.build]
+exclude = [
+    "venv",
+    "venv-test",
+    ".git",
+    "my_memory.db",
+    "__pycache__",
+    "*.pyc",
+]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100
